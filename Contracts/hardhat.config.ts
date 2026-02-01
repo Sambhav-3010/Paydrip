@@ -5,6 +5,8 @@ import hardhatTypechain from "@nomicfoundation/hardhat-typechain";
 import hardhatMocha from "@nomicfoundation/hardhat-mocha";
 import hardhatEthersChaiMatchers from "@nomicfoundation/hardhat-ethers-chai-matchers";
 import hardhatNetworkHelpers from "@nomicfoundation/hardhat-network-helpers";
+import "dotenv/config";
+import "@nomicfoundation/hardhat-verify";
 
 export default defineConfig({
   plugins: [
@@ -13,7 +15,7 @@ export default defineConfig({
     hardhatMocha,
     hardhatEthersChaiMatchers,
     hardhatNetworkHelpers,
-    hardhatToolboxMochaEthersPlugin
+    hardhatToolboxMochaEthersPlugin,
   ],
   solidity: {
     profiles: {
