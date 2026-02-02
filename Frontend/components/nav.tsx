@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { ThemeToggle } from '@/components/theme-toggle'
 import { Menu, X } from 'lucide-react'
 import { useState } from 'react'
 
@@ -55,7 +54,6 @@ export function Nav() {
         </div>
 
         <div className="hidden md:flex items-center gap-4">
-          <ThemeToggle />
           <Link href="/dashboard/employer">
             <Button size="default" className="px-6">
               Launch App
@@ -64,7 +62,6 @@ export function Nav() {
         </div>
 
         <div className="md:hidden flex items-center gap-3">
-          <ThemeToggle />
           <button
             className="p-3 border-3 border-border bg-card shadow-[3px_3px_0_var(--border)] hover:shadow-[5px_5px_0_var(--border)] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
