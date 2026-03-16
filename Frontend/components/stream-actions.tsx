@@ -4,25 +4,36 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Pause, Play, StopCircle, Download } from 'lucide-react'
 import { notifyLoading, notifySuccess, notifyError, dismissToast } from '@/lib/notifications'
+import { useWeb3 } from '@/contexts/Web3Context'
+import { pauseStream, resumeStream, terminateStream, withdrawSalary } from '@/lib/stream-contract'
 
 interface StreamActionsProps {
+  streamId: number
   status: 'active' | 'paused' | 'completed' | 'terminated'
   isEmployer?: boolean
   available?: number
+  onUpdated?: () => Promise<void> | void
 }
 
-export function StreamActions({ status, isEmployer, available }: StreamActionsProps) {
+export function StreamActions({ streamId, status, isEmployer, available, onUpdated }: StreamActionsProps) {
   const [isLoading, setIsLoading] = useState(false)
+  const { contract, isConnected } = useWeb3()
 
   const handleAction = async (action: string) => {
+    if (!contract || !isConnected) {
+      notifyError('Wallet not connected', 'Connect your wallet to perform this action.')
+      return
+    }
+
     setIsLoading(true)
     notifyLoading(`Processing ${action}...`)
 
     try {
-      console.log(`[v0] Executing action: ${action}`)
-
-      // Simulate transaction processing
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      if (action === 'pause') await pauseStream(contract, streamId)
+      if (action === 'resume') await resumeStream(contract, streamId)
+      if (action === 'terminate') await terminateStream(contract, streamId)
+      if (action === 'withdraw') await withdrawSalary(contract, streamId)
+      await onUpdated?.()
 
       dismissToast()
 

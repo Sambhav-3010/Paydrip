@@ -1,15 +1,9 @@
 'use client'
 
-interface Transaction {
-  hash: string
-  type: 'withdrawal' | 'pause' | 'resume' | 'terminate' | 'create'
-  amount?: number
-  date: Date
-  status: 'confirmed' | 'pending'
-}
+import type { StreamTransaction } from '@/lib/stream-types'
 
 interface TransactionHistoryProps {
-  transactions: Transaction[]
+  transactions: StreamTransaction[]
 }
 
 const typeLabels = {

@@ -44,7 +44,7 @@ export function Web3Provider({ children }: { children: ReactNode }) {
     const isConnected = !!account
 
     useEffect(() => {
-        if (signer && CONTRACT_ADDRESS !== "0x2A0328A28d572Eda5b1D91C7c6dFAF9eA4a5de46") {
+        if (signer && CONTRACT_ADDRESS) {
             const contractInstance = new Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer)
             setContract(contractInstance)
         } else {

@@ -16,24 +16,35 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { notifySuccess, notifyError } from '@/lib/notifications'
 import { Plus } from 'lucide-react'
+import { useWeb3 } from '@/contexts/Web3Context'
+import { createStream } from '@/lib/stream-contract'
 
-export function CreateStreamModal() {
+interface CreateStreamModalProps {
+  onCreated?: () => Promise<void> | void
+}
+
+export function CreateStreamModal({ onCreated }: CreateStreamModalProps) {
   const [open, setOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const { isConnected, contract } = useWeb3()
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    if (!contract || !isConnected) {
+      notifyError('Wallet not connected', 'Connect your wallet before creating a stream.')
+      return
+    }
+
     setIsLoading(true)
 
     try {
       const formData = new FormData(e.currentTarget)
-      console.log('[v0] Stream creation submitted:', {
-        recipient: formData.get('recipient'),
-        amount: formData.get('amount'),
-        duration: formData.get('duration'),
-      })
+      const recipient = String(formData.get('recipient') ?? '')
+      const amount = String(formData.get('amount') ?? '')
+      const duration = Number(formData.get('duration') ?? 0)
 
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      await createStream(contract, recipient, amount, duration)
+      await onCreated?.()
 
       notifySuccess('Stream created successfully!', 'The salary stream is now active.')
       setOpen(false)
@@ -105,6 +116,7 @@ export function CreateStreamModal() {
               placeholder="365"
               required
               min="1"
+              max="3650"
               className="brutal-input p-3"
             />
           </div>

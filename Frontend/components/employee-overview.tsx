@@ -1,18 +1,18 @@
 'use client'
 
-import { EmployeeStream } from '@/lib/mock-employee'
 import { DashboardCard } from '@/components/dashboard-card'
 import { StreamInfo } from '@/components/stream-info'
+import type { ChainStream } from '@/lib/stream-types'
 
 interface EmployeeOverviewProps {
-  streams: EmployeeStream[]
+  streams: ChainStream[]
 }
 
 export function EmployeeOverview({ streams }: EmployeeOverviewProps) {
   const activeStreams = streams.filter((s) => s.status === 'active').length
-  const totalAccrued = streams.reduce((sum, s) => sum + s.accrued, 0)
-  const totalWithdrawn = streams.reduce((sum, s) => sum + s.withdrawn, 0)
-  const totalRemaining = streams.reduce((sum, s) => sum + s.remaining, 0)
+  const totalAccrued = streams.reduce((sum, s) => sum + s.accruedEth, 0)
+  const totalWithdrawn = streams.reduce((sum, s) => sum + s.totalWithdrawnEth, 0)
+  const totalRemaining = streams.reduce((sum, s) => sum + s.withdrawableEth, 0)
 
   const cardData = [
     { label: 'Active Streams', value: activeStreams, highlight: false },

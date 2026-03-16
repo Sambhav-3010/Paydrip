@@ -1,12 +1,13 @@
 'use client'
 
 import Link from 'next/link'
-import { EmployeeStream } from '@/lib/mock-employee'
 import { StreamStatus } from '@/components/stream-status'
 import { Button } from '@/components/ui/button'
+import type { ChainStream } from '@/lib/stream-types'
+import { formatAddress } from '@/lib/stream-contract'
 
 interface EmployeeStreamsListProps {
-  streams: EmployeeStream[]
+  streams: ChainStream[]
 }
 
 export function EmployeeStreamsList({ streams }: EmployeeStreamsListProps) {
@@ -29,7 +30,7 @@ export function EmployeeStreamsList({ streams }: EmployeeStreamsListProps) {
                 <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-1">
                   From
                 </p>
-                <p className="font-bold">{stream.employerName}</p>
+                <p className="font-bold">{formatAddress(stream.employer)}</p>
                 <p className="text-xs text-muted-foreground brutal-mono">{stream.employer}</p>
               </div>
 
@@ -37,14 +38,14 @@ export function EmployeeStreamsList({ streams }: EmployeeStreamsListProps) {
                 <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-1">
                   Total
                 </p>
-                <p className="font-bold brutal-mono text-xl">{stream.totalAmount} ETH</p>
+                <p className="font-bold brutal-mono text-xl">{stream.totalAmountEth.toFixed(4)} ETH</p>
               </div>
 
               <div>
                 <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-1">
                   Available
                 </p>
-                <p className="font-bold brutal-mono text-xl text-primary">{stream.remaining.toFixed(3)} ETH</p>
+                <p className="font-bold brutal-mono text-xl text-primary">{stream.withdrawableEth.toFixed(4)} ETH</p>
               </div>
 
               <div>
@@ -55,7 +56,7 @@ export function EmployeeStreamsList({ streams }: EmployeeStreamsListProps) {
               </div>
 
               <div className="flex justify-end gap-2">
-                <Button size="sm" className="brutal-button">
+                <Button size="sm" className="brutal-button" disabled={stream.withdrawableEth <= 0}>
                   Withdraw
                 </Button>
                 <Button size="sm" className="brutal-button brutal-button-secondary">

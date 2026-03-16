@@ -5,10 +5,13 @@ import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Menu, X } from 'lucide-react'
 import { useState } from 'react'
+import { useWeb3 } from '@/contexts/Web3Context'
+import { formatAddress } from '@/lib/stream-contract'
 
 export function Nav() {
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const { account, isConnected, connectWallet, disconnectWallet, isConnecting } = useWeb3()
 
   const isActive = (href: string) => pathname === href
 
@@ -54,11 +57,20 @@ export function Nav() {
         </div>
 
         <div className="hidden md:flex items-center gap-4">
-          <Link href="/dashboard/employer">
-            <Button size="default" className="px-6">
-              Launch App
+          {isConnected ? (
+            <>
+              <span className="text-sm brutal-mono text-muted-foreground">
+                {formatAddress(account ?? '')}
+              </span>
+              <Button size="default" variant="outline" onClick={disconnectWallet} className="px-6">
+                Disconnect
+              </Button>
+            </>
+          ) : (
+            <Button size="default" className="px-6" onClick={connectWallet} disabled={isConnecting}>
+              {isConnecting ? 'Connecting...' : 'Connect Wallet'}
             </Button>
-          </Link>
+          )}
         </div>
 
         <div className="md:hidden flex items-center gap-3">
@@ -107,11 +119,15 @@ export function Nav() {
               Employees
             </Link>
             <div className="pt-4">
-              <Link href="/dashboard/employer" className="block">
-                <Button className="w-full">
-                  Launch App
+              {isConnected ? (
+                <Button className="w-full" variant="outline" onClick={disconnectWallet}>
+                  Disconnect {formatAddress(account ?? '')}
                 </Button>
-              </Link>
+              ) : (
+                <Button className="w-full" onClick={connectWallet} disabled={isConnecting}>
+                  {isConnecting ? 'Connecting...' : 'Connect Wallet'}
+                </Button>
+              )}
             </div>
           </div>
         </div>

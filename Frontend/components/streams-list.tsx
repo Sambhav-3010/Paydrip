@@ -1,12 +1,13 @@
 'use client'
 
 import Link from 'next/link'
-import { Stream } from '@/lib/mock-streams'
 import { StreamStatus } from '@/components/stream-status'
 import { Button } from '@/components/ui/button'
+import type { ChainStream } from '@/lib/stream-types'
+import { formatAddress } from '@/lib/stream-contract'
 
 interface StreamsListProps {
-  streams: Stream[]
+  streams: ChainStream[]
 }
 
 export function StreamsList({ streams }: StreamsListProps) {
@@ -29,22 +30,22 @@ export function StreamsList({ streams }: StreamsListProps) {
                 <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-1">
                   Recipient
                 </p>
-                <p className="font-bold">{stream.recipientName}</p>
-                <p className="text-xs text-muted-foreground brutal-mono">{stream.recipient}</p>
+                <p className="font-bold">{formatAddress(stream.employee)}</p>
+                <p className="text-xs text-muted-foreground brutal-mono">{stream.employee}</p>
               </div>
 
               <div>
                 <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-1">
                   Total
                 </p>
-                <p className="font-bold brutal-mono text-xl">{stream.amount} ETH</p>
+                <p className="font-bold brutal-mono text-xl">{stream.totalAmountEth.toFixed(4)} ETH</p>
               </div>
 
               <div>
                 <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-1">
                   Accrued
                 </p>
-                <p className="font-bold brutal-mono text-xl text-primary">{stream.accrued.toFixed(3)} ETH</p>
+                <p className="font-bold brutal-mono text-xl text-primary">{stream.accruedEth.toFixed(4)} ETH</p>
               </div>
 
               <div>
