@@ -22,9 +22,9 @@ export function EmployeeOverview({ streams }: EmployeeOverviewProps) {
   ]
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-10">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {cardData.map((card) => (
-        <DashboardCard key={card.label} highlight={card.highlight}>
+        <DashboardCard key={card.label} highlight={card.highlight} className="min-h-44">
           <StreamInfo
             label={card.label}
             value={card.value}

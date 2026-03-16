@@ -97,6 +97,32 @@ export function Web3Provider({ children }: { children: ReactNode }) {
         }
     }, [handleAccountsChanged, handleChainChanged])
 
+    const switchToSepolia = useCallback(async () => {
+        if (!window.ethereum) return
+        try {
+            await window.ethereum.request({
+                method: 'wallet_switchEthereumChain',
+                params: [{ chainId: '0xaa36a7' }], // Sepolia chain ID 11155111
+            })
+        } catch (switchErr) {
+            // Chain not added to MetaMask yet — add it
+            if (switchErr && typeof switchErr === 'object' && 'code' in switchErr && (switchErr as { code: number }).code === 4902) {
+                await window.ethereum.request({
+                    method: 'wallet_addEthereumChain',
+                    params: [{
+                        chainId: '0xaa36a7',
+                        chainName: 'Sepolia Testnet',
+                        nativeCurrency: { name: 'SepoliaETH', symbol: 'ETH', decimals: 18 },
+                        rpcUrls: ['https://rpc.sepolia.org'],
+                        blockExplorerUrls: ['https://sepolia.etherscan.io'],
+                    }],
+                })
+            } else {
+                throw switchErr
+            }
+        }
+    }, [])
+
     const connectWallet = useCallback(async () => {
         if (typeof window === 'undefined' || !window.ethereum) {
             setError('MetaMask is not installed. Please install MetaMask to continue.')
@@ -116,8 +142,16 @@ export function Web3Provider({ children }: { children: ReactNode }) {
             }
 
             const browserProvider = new BrowserProvider(window.ethereum)
-            const userSigner = await browserProvider.getSigner()
             const network = await browserProvider.getNetwork()
+
+            // Auto-switch to Sepolia if on the wrong network
+            if (Number(network.chainId) !== 11155111) {
+                await switchToSepolia()
+                // After switching, the chainChanged event will fire and reload the page
+                return
+            }
+
+            const userSigner = await browserProvider.getSigner()
 
             setProvider(browserProvider)
             setSigner(userSigner)
@@ -133,7 +167,7 @@ export function Web3Provider({ children }: { children: ReactNode }) {
         } finally {
             setIsConnecting(false)
         }
-    }, [fetchBalance])
+    }, [fetchBalance, switchToSepolia])
 
     const disconnectWallet = useCallback(() => {
         setAccount(null)
@@ -155,8 +189,15 @@ export function Web3Provider({ children }: { children: ReactNode }) {
 
                     if (accounts.length > 0) {
                         const browserProvider = new BrowserProvider(window.ethereum)
-                        const userSigner = await browserProvider.getSigner()
                         const network = await browserProvider.getNetwork()
+
+                        if (Number(network.chainId) !== 11155111) {
+                            // Wrong network on auto-reconnect — switch silently
+                            await switchToSepolia()
+                            return
+                        }
+
+                        const userSigner = await browserProvider.getSigner()
 
                         setProvider(browserProvider)
                         setSigner(userSigner)
@@ -171,7 +212,7 @@ export function Web3Provider({ children }: { children: ReactNode }) {
         }
 
         checkConnection()
-    }, [fetchBalance])
+    }, [fetchBalance, switchToSepolia])
 
     const value: Web3ContextType = {
         account,

@@ -9,6 +9,40 @@ const STREAM_STATUS = {
 
 const SECONDS_PER_DAY = 24 * 60 * 60;
 
+function getReadableContractAddress(contract: Contract): string {
+  return String(contract.target ?? "");
+}
+
+async function assertContractDeployed(contract: Contract): Promise<void> {
+  const runner = contract.runner as { provider?: { getCode: (address: string) => Promise<string>; getNetwork: () => Promise<{ chainId: bigint }> } } | null;
+  const provider = runner?.provider;
+
+  if (!provider) {
+    throw new Error("Wallet provider not ready. Please reconnect your wallet.");
+  }
+
+  const address = getReadableContractAddress(contract);
+  const [code, network] = await Promise.all([provider.getCode(address), provider.getNetwork()]);
+  const chainId = Number(network.chainId);
+  if (code === "0x") {
+    const networkHint = chainId === 11155111 ? "Sepolia" : chainId === 1 ? "Mainnet" : `chain ID ${chainId}`;
+    throw new Error(
+      chainId !== 11155111
+        ? `Wrong network: you are connected to ${networkHint} (chain ID ${chainId}). Please switch MetaMask to Sepolia Testnet (chain ID 11155111).`
+        : `No contract is deployed at ${address} on Sepolia. The contract may have been redeployed — check NEXT_PUBLIC_CONTRACT_ADDRESS.`
+    );
+  }
+}
+
+function toUserFacingContractError(error: unknown): Error {
+  if (error && typeof error === "object" && "code" in error && (error as { code?: string }).code === "BAD_DATA") {
+    return new Error(
+      "Contract call failed to decode data. The connected address/network likely does not match the deployed PayrollStreaming contract.",
+    );
+  }
+  return error instanceof Error ? error : new Error("Contract interaction failed.");
+}
+
 function toNumber(value: bigint | number): number {
   return typeof value === "bigint" ? Number(value) : value;
 }
@@ -79,24 +113,39 @@ export function getDaysRemaining(endTime: number): number {
 }
 
 export async function fetchStream(contract: Contract, streamId: number): Promise<ChainStream> {
-  const [rawStream, accruedWei] = await Promise.all([
-    contract.getStream(streamId),
-    contract.getAccruedSalary(streamId),
-  ]);
+  await assertContractDeployed(contract);
+  try {
+    const [rawStream, accruedWei] = await Promise.all([
+      contract.getStream(streamId),
+      contract.getAccruedSalary(streamId),
+    ]);
 
-  return toChainStream(streamId, rawStream, accruedWei as bigint);
+    return toChainStream(streamId, rawStream, accruedWei as bigint);
+  } catch (error) {
+    throw toUserFacingContractError(error);
+  }
 }
 
 export async function fetchEmployerStreams(contract: Contract, employer: string): Promise<ChainStream[]> {
-  const streamIds = (await contract.getEmployerStreams(employer)) as bigint[];
-  const streams = await Promise.all(streamIds.map((id) => fetchStream(contract, Number(id))));
-  return streams.sort((a, b) => b.id - a.id);
+  await assertContractDeployed(contract);
+  try {
+    const streamIds = (await contract.getEmployerStreams(employer)) as bigint[];
+    const streams = await Promise.all(streamIds.map((id) => fetchStream(contract, Number(id))));
+    return streams.sort((a, b) => b.id - a.id);
+  } catch (error) {
+    throw toUserFacingContractError(error);
+  }
 }
 
 export async function fetchEmployeeStreams(contract: Contract, employee: string): Promise<ChainStream[]> {
-  const streamIds = (await contract.getEmployeeStreams(employee)) as bigint[];
-  const streams = await Promise.all(streamIds.map((id) => fetchStream(contract, Number(id))));
-  return streams.sort((a, b) => b.id - a.id);
+  await assertContractDeployed(contract);
+  try {
+    const streamIds = (await contract.getEmployeeStreams(employee)) as bigint[];
+    const streams = await Promise.all(streamIds.map((id) => fetchStream(contract, Number(id))));
+    return streams.sort((a, b) => b.id - a.id);
+  } catch (error) {
+    throw toUserFacingContractError(error);
+  }
 }
 
 export async function createStream(
@@ -105,6 +154,7 @@ export async function createStream(
   totalAmountEth: string,
   durationDays: number,
 ): Promise<void> {
+  await assertContractDeployed(contract);
   const startTime = Math.floor(Date.now() / 1000) + 120;
   const endTime = startTime + durationDays * SECONDS_PER_DAY;
   const totalAmountWei = parseEther(totalAmountEth);
@@ -116,21 +166,25 @@ export async function createStream(
 }
 
 export async function pauseStream(contract: Contract, streamId: number): Promise<void> {
+  await assertContractDeployed(contract);
   const tx = await contract.pauseStream(streamId);
   await tx.wait();
 }
 
 export async function resumeStream(contract: Contract, streamId: number): Promise<void> {
+  await assertContractDeployed(contract);
   const tx = await contract.resumeStream(streamId);
   await tx.wait();
 }
 
 export async function terminateStream(contract: Contract, streamId: number): Promise<void> {
+  await assertContractDeployed(contract);
   const tx = await contract.terminateStream(streamId);
   await tx.wait();
 }
 
 export async function withdrawSalary(contract: Contract, streamId: number): Promise<void> {
+  await assertContractDeployed(contract);
   const tx = await contract.withdrawSalary(streamId);
   await tx.wait();
 }

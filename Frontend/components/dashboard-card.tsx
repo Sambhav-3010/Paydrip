@@ -13,8 +13,9 @@ export function DashboardCard({ children, className = '', onClick, highlight }: 
   return (
     <div
       onClick={onClick}
-      className={`brutal-card p-6 ${highlight ? 'bg-accent' : 'bg-card'} ${onClick ? 'cursor-pointer' : ''} ${className}`}
+      className={`brutal-card relative overflow-hidden p-6 sm:p-7 ${highlight ? 'bg-[linear-gradient(135deg,rgba(249,115,22,0.2),rgba(255,255,255,0.98))]' : 'bg-card'} ${onClick ? 'cursor-pointer brutal-card-hover' : ''} ${className}`}
     >
+      <div className={`pointer-events-none absolute inset-x-0 top-0 h-2 ${highlight ? 'bg-primary' : 'bg-secondary'}`} />
       {children}
     </div>
   )
