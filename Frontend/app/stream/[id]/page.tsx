@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { use, useCallback, useEffect, useMemo, useState } from 'react'
 import { Nav } from '@/components/nav'
 import { PageHeader } from '@/components/page-header'
 import { DashboardCard } from '@/components/dashboard-card'
@@ -14,15 +14,20 @@ import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { useWeb3 } from '@/contexts/Web3Context'
 import { fetchStream, fetchStreamTransactions, formatAddress, getDaysRemaining, getDurationDays } from '@/lib/stream-contract'
-import type { ChainStream, StreamTransaction } from '@/lib/stream-types'
+import type { ChainStream, SalaryStreamLiveMessage, StreamTransaction } from '@/lib/stream-types'
 
-export default function StreamDetailPage({ params }: { params: { id: string } }) {
-  const streamId = Number(params.id)
+export default function StreamDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params)
+  const streamId = Number(id)
   const { account, contract, isConnected, connectWallet, isConnecting } = useWeb3()
   const [stream, setStream] = useState<ChainStream | null>(null)
   const [transactions, setTransactions] = useState<StreamTransaction[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [liveConnection, setLiveConnection] = useState<'idle' | 'connecting' | 'connected' | 'error'>('idle')
+  const [liveMode, setLiveMode] = useState<'kafka' | 'fallback' | null>(null)
+  const [liveError, setLiveError] = useState<string | null>(null)
+  const [liveMessage, setLiveMessage] = useState<SalaryStreamLiveMessage | null>(null)
 
   const loadStream = useCallback(async () => {
     if (!contract || Number.isNaN(streamId)) return
@@ -56,6 +61,81 @@ export default function StreamDetailPage({ params }: { params: { id: string } })
     return () => clearInterval(interval)
   }, [contract, loadStream, streamId])
 
+  useEffect(() => {
+    if (!isConnected || Number.isNaN(streamId)) {
+      setLiveConnection('idle')
+      return
+    }
+
+    setLiveConnection('connecting')
+    setLiveError(null)
+
+    const source = new EventSource(`/api/streams/${streamId}/live`)
+
+    const parseJsonData = <T,>(event: Event): T | null => {
+      const data = (event as MessageEvent).data
+      if (typeof data !== 'string' || data.length === 0) return null
+      try {
+        return JSON.parse(data) as T
+      } catch {
+        return null
+      }
+    }
+
+    const onStatus = (event: Event) => {
+      const parsed = parseJsonData<{ state?: string; mode?: 'kafka' | 'fallback' }>(event)
+      if (!parsed) return
+      if (parsed.state === 'connected') {
+        setLiveConnection('connected')
+        setLiveMode(parsed.mode ?? null)
+      }
+    }
+
+    const onSalary = (event: Event) => {
+      const parsed = parseJsonData<SalaryStreamLiveMessage>(event)
+      if (!parsed) return
+      setLiveMessage(parsed)
+      setLiveConnection('connected')
+      setLiveError(null)
+      setStream((current) => {
+        if (!current) return current
+        return {
+          ...current,
+          employer: parsed.employer,
+          employee: parsed.employee,
+          totalAmountEth: parsed.totalAmountEth,
+          accruedEth: parsed.accruedEth,
+          withdrawableEth: parsed.withdrawableEth,
+          totalWithdrawnEth: parsed.totalWithdrawnEth,
+          startTime: parsed.startTime,
+          endTime: parsed.endTime,
+          status: parsed.status,
+        }
+      })
+    }
+
+    const onError = (event: Event) => {
+      const parsed = parseJsonData<{ message?: string }>(event)
+      setLiveConnection('error')
+      setLiveError(parsed?.message ?? 'Kafka feed unavailable')
+    }
+
+    source.addEventListener('status', onStatus)
+    source.addEventListener('salary', onSalary)
+    source.addEventListener('live-error', onError)
+    source.onerror = () => {
+      setLiveConnection('error')
+      setLiveError('Kafka feed disconnected')
+    }
+
+    return () => {
+      source.removeEventListener('status', onStatus)
+      source.removeEventListener('salary', onSalary)
+      source.removeEventListener('live-error', onError)
+      source.close()
+    }
+  }, [isConnected, streamId])
+
   const isEmployer = useMemo(() => {
     if (!stream || !account) return false
     return account.toLowerCase() === stream.employer.toLowerCase()
@@ -68,6 +148,8 @@ export default function StreamDetailPage({ params }: { params: { id: string } })
 
   const daysRemaining = stream ? getDaysRemaining(stream.endTime) : 0
   const totalDays = stream ? getDurationDays(stream.startTime, stream.endTime) : 0
+  const liveStatus = liveMessage?.status ?? stream?.status
+  const liveAvailable = liveMessage?.withdrawableEth ?? stream?.withdrawableEth ?? 0
 
   return (
     <>
@@ -107,10 +189,17 @@ export default function StreamDetailPage({ params }: { params: { id: string } })
                   title={`Stream #${stream.id}`}
                   description={`Employee: ${formatAddress(stream.employee)} | Employer: ${formatAddress(stream.employer)}`}
                 />
-                <div className="flex items-center gap-4">
+                <div className="flex flex-wrap items-center gap-4">
                   <StreamStatus status={stream.status} />
                   <span className="text-sm text-muted-foreground">
                     {daysRemaining} of {totalDays} days remaining
+                  </span>
+                  <span className={`brutal-tag ${liveConnection === 'connected' ? 'brutal-tag-primary' : 'brutal-tag-muted'}`}>
+                    {liveConnection === 'connected'
+                      ? liveMode === 'fallback'
+                        ? 'Live Direct'
+                        : 'Kafka Live'
+                      : 'Kafka Offline'}
                   </span>
                 </div>
               </div>
@@ -152,6 +241,43 @@ export default function StreamDetailPage({ params }: { params: { id: string } })
                 <div className="space-y-6">
                   <DashboardCard>
                     <div className="space-y-4">
+                      <h3 className="text-lg font-semibold text-foreground">Live Salary Feed</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {liveMode === 'fallback'
+                          ? 'Signed salary snapshots streamed directly from chain while Kafka is unavailable.'
+                          : 'Signed salary snapshots streamed in real time through Kafka.'}
+                      </p>
+                      <div className="grid grid-cols-2 gap-4">
+                        <StreamInfo
+                          label="Live Accrued"
+                          value={(liveMessage?.accruedEth ?? stream.accruedEth).toFixed(4)}
+                          unit="ETH"
+                          highlight
+                        />
+                        <StreamInfo
+                          label="Live Available"
+                          value={(liveMessage?.withdrawableEth ?? stream.withdrawableEth).toFixed(4)}
+                          unit="ETH"
+                          highlight
+                        />
+                      </div>
+                      <div className="brutal-inset px-4 py-3">
+                        <p className="brutal-kicker">Signed Snapshot</p>
+                        <p className="mt-2 break-all brutal-mono text-xs text-foreground">
+                          {liveMessage?.signature ?? 'Waiting for signed Kafka event'}
+                        </p>
+                        {liveMessage && (
+                          <p className="mt-2 text-xs text-muted-foreground">
+                            Updated {new Date(liveMessage.producedAt).toLocaleString()}
+                          </p>
+                        )}
+                        {liveError && <p className="mt-2 text-xs text-destructive">{liveError}</p>}
+                      </div>
+                    </div>
+                  </DashboardCard>
+
+                  <DashboardCard>
+                    <div className="space-y-4">
                       <h3 className="text-lg font-semibold text-foreground">
                         {isEmployer ? 'Stream Recipient' : 'Stream Employer'}
                       </h3>
@@ -172,9 +298,9 @@ export default function StreamDetailPage({ params }: { params: { id: string } })
                       {isEmployer || isEmployee ? (
                         <StreamActions
                           streamId={stream.id}
-                          status={stream.status}
+                          status={liveStatus ?? stream.status}
                           isEmployer={isEmployer}
-                          available={stream.withdrawableEth}
+                          available={liveAvailable}
                           onUpdated={loadStream}
                         />
                       ) : (

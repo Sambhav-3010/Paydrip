@@ -27,3 +27,18 @@ export interface StreamTransaction {
   status: "confirmed" | "pending";
 }
 
+export interface SalaryStreamLiveMessage {
+  streamId: number;
+  employer: string;
+  employee: string;
+  totalAmountEth: number;
+  accruedEth: number;
+  withdrawableEth: number;
+  totalWithdrawnEth: number;
+  startTime: number;
+  endTime: number;
+  status: StreamStatus;
+  producedAt: string;
+  signature: string;
+}
+

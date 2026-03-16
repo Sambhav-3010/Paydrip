@@ -10,10 +10,12 @@ export function RootLayoutClient({
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const analyticsEnabled = process.env.NEXT_PUBLIC_ENABLE_VERCEL_ANALYTICS === 'true'
+
   return (
     <Providers>
       {children}
-      <Analytics />
+      {analyticsEnabled && <Analytics />}
     </Providers>
   )
 }
