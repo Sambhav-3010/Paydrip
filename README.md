@@ -180,6 +180,79 @@ cd Contracts
 npx hardhat run scripts/deploy.ts --network sepolia
 ```
 
+## Docker Deployment
+
+This repository now includes Docker support for running the frontend together with Kafka.
+
+Files added:
+
+- `Frontend/Dockerfile`: production image for AWS or any container host
+- `Frontend/Dockerfile.dev`: containerized development image
+- `Frontend/.dockerignore`: keeps Docker build context small
+- `docker-compose.yml`: starts the app and Kafka together
+
+### Docker Build
+
+Build the frontend image from the repository root:
+
+```bash
+docker build \
+	-f Frontend/Dockerfile \
+	--build-arg NEXT_PUBLIC_CONTRACT_ADDRESS=your_contract_address \
+	--build-arg NEXT_PUBLIC_SEPOPLIA_RPC_URL=your_sepolia_rpc_url \
+	--build-arg NEXT_PUBLIC_ENABLE_VERCEL_ANALYTICS=false \
+	-t paydrip-app:latest \
+	./Frontend
+```
+
+### Docker Compose
+
+Create or update `Frontend/.env.local` with your values, then run compose from repository root.
+
+Required env file (`Frontend/.env.local`):
+
+```dotenv
+NEXT_PUBLIC_CONTRACT_ADDRESS=your_contract_address
+NEXT_PUBLIC_SEPOPLIA_RPC_URL=your_sepolia_rpc_url
+KAFKA_CLIENT_ID=paydrip-next-backend
+KAFKA_TOPIC=paydrip.salary.live
+KAFKA_SIGNATURE_SECRET=paydrip-local-signature
+NEXT_PUBLIC_ENABLE_VERCEL_ANALYTICS=false
+```
+
+Then run:
+
+```bash
+docker compose up --build
+```
+
+The app will be available at:
+
+```text
+http://localhost:3000
+```
+
+Kafka will be available inside the compose network at:
+
+```text
+kafka:9092
+```
+
+### AWS Deployment Notes
+
+If you deploy on AWS using Docker directly:
+
+1. Build the image with the required public build args.
+2. Push it to a container registry such as Amazon ECR.
+3. Run it on ECS, EC2, or another container host.
+4. Provide runtime environment variables for Kafka and signing.
+
+Important:
+
+- `NEXT_PUBLIC_CONTRACT_ADDRESS` and `NEXT_PUBLIC_SEPOPLIA_RPC_URL` should be present at build time because they affect the Next.js app bundle.
+- Kafka is configured in `docker-compose.yml` as an internal service named `kafka`, so the app uses `KAFKA_BROKERS=kafka:9092` there.
+- The compose file uses a single-node Kafka KRaft setup suitable for development and small demos. For production, use a managed Kafka cluster or a hardened multi-node setup.
+
 ## Kafka Setup
 
 Kafka is optional for local development because the live feed route can fall back to direct contract reads.
