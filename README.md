@@ -89,7 +89,9 @@ Relevant files:
 
 The diagram below is GitHub-friendly Mermaid and can also be imported into Excalidraw using `Insert -> Mermaid`.
 
-
+<p align="center">
+  <img src="./docs/Kafka.svg" width="900">
+</p>
 
 ### Prerequisites
 
@@ -123,7 +125,7 @@ Create `Frontend/.env.local` with:
 
 ```dotenv
 NEXT_PUBLIC_CONTRACT_ADDRESS=0x2A0328A28d572Eda5b1D91C7c6dFAF9eA4a5de46
-NEXT_PUBLIC_SEPOPLIA_RPC_URL=https://sepolia.infura.io/v3/your_key
+NEXT_PUBLIC_SEPOLIA_RPC_URL=https://sepolia.infura.io/v3/your_key
 KAFKA_BROKERS=localhost:9092
 KAFKA_CLIENT_ID=paydrip-next-backend
 KAFKA_TOPIC=paydrip.salary.live
@@ -133,7 +135,7 @@ NEXT_PUBLIC_ENABLE_VERCEL_ANALYTICS=false
 
 Notes:
 
-- `NEXT_PUBLIC_SEPOPLIA_RPC_URL` is the RPC URL currently used by the frontend backend route for live stream snapshots.
+- `NEXT_PUBLIC_SEPOLIA_RPC_URL` is the RPC URL currently used by the frontend backend route for live stream snapshots.
 - If Kafka is not running, the stream details page will fall back to direct-chain live updates.
 - Analytics are disabled locally by default.
 
@@ -203,7 +205,7 @@ Build the frontend image from the repository root:
 docker build \
 	-f Frontend/Dockerfile \
 	--build-arg NEXT_PUBLIC_CONTRACT_ADDRESS=your_contract_address \
-	--build-arg NEXT_PUBLIC_SEPOPLIA_RPC_URL=your_sepolia_rpc_url \
+	--build-arg NEXT_PUBLIC_SEPOLIA_RPC_URL=your_sepolia_rpc_url \
 	--build-arg NEXT_PUBLIC_ENABLE_VERCEL_ANALYTICS=false \
 	-t paydrip-app:latest \
 	./Frontend
@@ -217,7 +219,7 @@ Required env file (`Frontend/.env.local`):
 
 ```dotenv
 NEXT_PUBLIC_CONTRACT_ADDRESS=your_contract_address
-NEXT_PUBLIC_SEPOPLIA_RPC_URL=your_sepolia_rpc_url
+NEXT_PUBLIC_SEPOLIA_RPC_URL=your_sepolia_rpc_url
 KAFKA_CLIENT_ID=paydrip-next-backend
 KAFKA_TOPIC=paydrip.salary.live
 KAFKA_SIGNATURE_SECRET=paydrip-local-signature
@@ -253,7 +255,7 @@ If you deploy on AWS using Docker directly:
 
 Important:
 
-- `NEXT_PUBLIC_CONTRACT_ADDRESS` and `NEXT_PUBLIC_SEPOPLIA_RPC_URL` should be present at build time because they affect the Next.js app bundle.
+- `NEXT_PUBLIC_CONTRACT_ADDRESS` and `NEXT_PUBLIC_SEPOLIA_RPC_URL` should be present at build time because they affect the Next.js app bundle.
 - Kafka is configured in `docker-compose.yml` as an internal service named `kafka`, so the app uses `KAFKA_BROKERS=kafka:9092` there.
 - `docker-compose.yml` uses the public official image `apache/kafka:3.7.0` for local and EC2-style deployments.
 - The compose file uses a single-node Kafka KRaft setup suitable for development and small demos. For production, use a managed Kafka cluster or a hardened multi-node setup.
