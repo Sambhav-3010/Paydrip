@@ -14,9 +14,9 @@ let contract: Contract | null = null
 function getProvider(): JsonRpcProvider {
   if (provider) return provider
 
-  const rpcUrl = process.env.NEXT_PUBLIC_SEPOPLIA_RPC_URL
+  const rpcUrl = process.env.NEXT_PUBLIC_SEPOPLIA_RPC_URL ?? process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL
   if (!rpcUrl) {
-    throw new Error('NEXT_PUBLIC_SEPOPLIA_RPC_URL is not configured')
+    throw new Error('RPC URL is not configured. Set NEXT_PUBLIC_SEPOLIA_RPC_URL (or NEXT_PUBLIC_SEPOPLIA_RPC_URL).')
   }
 
   provider = new JsonRpcProvider(rpcUrl)

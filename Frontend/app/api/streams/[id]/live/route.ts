@@ -75,7 +75,13 @@ export async function GET(
           send('salary', snapshot)
         }
 
-        await publishFallbackSnapshot()
+        await publishFallbackSnapshot().catch((error) => {
+          send('live-error', {
+            message: error instanceof Error
+              ? error.message
+              : 'Failed to fetch fallback salary snapshot',
+          })
+        })
 
         const fallbackTimer = setInterval(() => {
           void publishFallbackSnapshot().catch((error) => {
