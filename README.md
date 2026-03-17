@@ -85,7 +85,11 @@ Relevant files:
 - [Frontend/lib/server/stream-signature.ts](Frontend/lib/server/stream-signature.ts)
 - [Frontend/app/stream/[id]/page.tsx](Frontend/app/stream/[id]/page.tsx)
 
-## Local Setup
+## Architecture Diagram
+
+The diagram below is GitHub-friendly Mermaid and can also be imported into Excalidraw using `Insert -> Mermaid`.
+
+
 
 ### Prerequisites
 
@@ -251,6 +255,7 @@ Important:
 
 - `NEXT_PUBLIC_CONTRACT_ADDRESS` and `NEXT_PUBLIC_SEPOPLIA_RPC_URL` should be present at build time because they affect the Next.js app bundle.
 - Kafka is configured in `docker-compose.yml` as an internal service named `kafka`, so the app uses `KAFKA_BROKERS=kafka:9092` there.
+- `docker-compose.yml` uses the public official image `apache/kafka:3.7.0` for local and EC2-style deployments.
 - The compose file uses a single-node Kafka KRaft setup suitable for development and small demos. For production, use a managed Kafka cluster or a hardened multi-node setup.
 
 ## Kafka Setup
